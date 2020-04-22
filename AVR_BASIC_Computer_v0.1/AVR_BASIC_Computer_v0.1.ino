@@ -93,9 +93,19 @@
 // 	Quirk:  "10 LET A=B+C" is ok "10 LET A = B + C" is not.
 // 	Quirk:  INPUT seems broken?
 
+// hack to let makefiles work with this file unchanged
+#ifdef FORCE_DESKTOP
+#undef ARDUINO
+#include "desktop.h"
+#else
+#define ARDUINO 1
+#endif
+
 /*
   Additional Libraries
 */
+
+#ifdef ARDUINO
 // TVout
 #include <TVout.h>
 #include <video_gen.h>
@@ -107,17 +117,12 @@
 PS2uartKeyboard keyboard;
 TVout TV;
 
+#endif
+
 // IF testing with Visual C, this needs to be the first thing in the file.
 //#include "stdafx.h"
 
 char eliminateCompileErrors = 1;  // fix to suppress arduino build errors
-
-// hack to let makefiles work with this file unchanged
-#ifdef FORCE_DESKTOP
-#undef ARDUINO
-#else
-#define ARDUINO 1
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Feature option configuration...
@@ -216,6 +221,7 @@ File fp;
 #endif
 #endif /* ARDUINO */
 #define kRamSize  (RAMEND - 8803 - kRamFileIO - kRamTones)
+#endif
 
 #ifndef ARDUINO
 // Not arduino setup
@@ -224,7 +230,7 @@ File fp;
 #undef ENABLE_TONES
 
 // size of our program ram
-#define kRamSize   4096 /* arbitrary */
+#define kRamSize   64*1024 /* arbitrary */
 
 #ifdef ENABLE_FILEIO
 FILE * fp;
@@ -242,7 +248,6 @@ void cmd_Files( void );
 #define boolean int
 #define true 1
 #define false 0
-#endif
 #endif
 
 #ifndef byte
@@ -289,7 +294,13 @@ static unsigned char outStream = kStreamSerial;
 #define SQUOTE  '\''
 #define DQUOTE  '\"'
 #define CTRLC	0x1B  // Changed to ESC key (27 - 0x1B)
+
+#ifdef ARDUINO
 #define CTRLH	PS2_BACKSPACE
+#else
+#define CTRLH  0x08
+#endif
+
 #define CTRLS	0x13
 #define CTRLX	0x18
 
@@ -299,7 +310,6 @@ typedef short unsigned LINENUM;
 #else
 #define ECHO_CHARS 0
 #endif
-
 
 static unsigned char program[kRamSize];
 static const char *  sentinel = "AVR BASIC Computer V0.2";
@@ -1352,6 +1362,7 @@ interperateAtTxtpos:
         val = expression();
         switch (val)
         {
+#ifdef ARDUINO
           case 0:
             TV.select_font(font4x6);
             goto cls;
@@ -1364,6 +1375,7 @@ interperateAtTxtpos:
           case 3:
             TV.select_font(font8x8ext);
             goto cls;
+#endif
 
           default:
             goto cls;
@@ -2004,7 +2016,9 @@ variables:
   goto run_next_statement;
 
 cls:
+#ifdef ARDUINO
   TV.clear_screen();
+#endif
   goto run_next_statement;
 
 minmax:
@@ -2100,7 +2114,7 @@ void setup()
 {
 #ifdef ARDUINO
   delay(1000);
-  
+
   TV.begin(PAL, 720, 480);
   TV.select_font(font8x8);
   TV.set_hbi_hook(keyboard.begin());
